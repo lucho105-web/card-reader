@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cards">
+<meta name="theme-color" content="#000000">
+<title>Cards</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23000'/%3E%3Crect x='44' y='32' width='92' height='116' rx='10' fill='%231C1C1E' stroke='%230A84FF' stroke-width='5'/%3E%3Ccircle cx='90' cy='74' r='15' fill='%230A84FF'/%3E%3Cpath d='M58 128l22-28 15 18 12-14 15 24z' fill='%230A84FF'/%3E%3C/svg%3E">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+  :root{
+    /* iOS dark system colours */
+    --bg:#000000;
+    --group:#1C1C1E;
+    --group2:#2C2C2E;
+    --fill:#3A3A3C;
+    --sep:#38383A;
+    --label:#FFFFFF;
+    --label2:rgba(235,235,245,.60);
+    --label3:rgba(235,235,245,.30);
+    --blue:#0A84FF;
+    --green:#30D158;
+    --red:#FF453A;
+    --orange:#FF9F0A;
+    --sf:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',system-ui,'Segoe UI',Roboto,sans-serif;
+    --tabh:calc(49px + env(safe-area-inset-bottom));
+  }
+
+  html{background:var(--bg);-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);color:var(--label);
+    font:400 17px/1.45 var(--sf);
+    letter-spacing:-.022em;
+    min-height:100vh;
+    padding-bottom:var(--tabh);
+    max-width:620px;margin:0 auto;
+    overscroll-behavior-y:none;
+  }
+  button,input,textarea,select{font-family:inherit;color:inherit;font-size:17px;letter-spacing:inherit}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  a{color:var(--blue);text-decoration:none}
+
+  /* ---------- navigation bar ---------- */
+  .navbar{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.82);
+          backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+          padding:max(6px,env(safe-area-inset-top)) 16px 0}
+  .navbar .inline{display:flex;align-items:center;justify-content:space-between;
+                  min-height:44px;gap:12px}
+  .navbar .inline h1{font-size:17px;font-weight:600;letter-spacing:-.022em}
+  .navbar .act{background:none;border:none;color:var(--blue);font-size:17px;padding:6px 0;cursor:pointer}
+  .navbar.bordered{border-bottom:.5px solid var(--sep)}
+  .largetitle{padding:0 16px 8px}
+  .largetitle h1{font-size:34px;line-height:1.12;font-weight:700;letter-spacing:.374px}
+  .largetitle p{font-size:15px;color:var(--label2);margin-top:3px;letter-spacing:-.01em}
+
+  .screen{padding:8px 0 28px}
+
+  /* ---------- grouped inset lists ---------- */
+  .group{margin:0 16px 30px}
+  .grouphead{font-size:13px;color:var(--label2);text-transform:uppercase;
+             letter-spacing:.06em;padding:0 16px 7px;font-weight:400}
+  .groupnote{font-size:13px;color:var(--label2);padding:7px 16px 0;line-height:1.4;letter-spacing:-.01em}
+  .list{background:var(--group);border-radius:10px;overflow:hidden}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 16px;min-height:44px;
+       position:relative;background:none;border:none;width:100%;text-align:left;cursor:pointer}
+  .row + .row::before{content:'';position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--sep)}
+  .row .lbl{flex:1;min-width:0;font-size:17px}
+  .row .val{color:var(--label2);font-size:17px;max-width:52%;overflow:hidden;
+            text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  .row .chev{color:var(--label3);flex-shrink:0}
+  .row.plain{cursor:default}
+  .row.tint .lbl{color:var(--blue)}
+  .row.destruct .lbl{color:var(--red)}
+  .row.center{justify-content:center}
+  .row.center .lbl{flex:none;text-align:center}
+  .sub{font-size:13px;color:var(--label2);margin-top:2px;line-height:1.35}
+
+  /* ---------- buttons ---------- */
+  .filled{display:block;width:100%;background:var(--blue);color:#fff;border:none;
+          border-radius:12px;padding:15px;font-size:17px;font-weight:600;cursor:pointer}
+  .filled:active{opacity:.82}
+  .filled[disabled]{background:var(--group2);color:var(--label3)}
+  .tinted{display:block;width:100%;background:rgba(10,132,255,.16);color:var(--blue);
+          border:none;border-radius:12px;padding:14px;font-size:17px;font-weight:500;cursor:pointer}
+  .tinted:active{opacity:.7}
+  .tinted[disabled]{color:var(--label3);background:var(--group)}
+  .gray{display:block;width:100%;background:var(--group2);color:var(--label);border:none;
+        border-radius:12px;padding:14px;font-size:17px;cursor:pointer}
+
+  /* ---------- segmented control ---------- */
+  .seg{display:flex;background:var(--group2);border-radius:9px;padding:2px;gap:2px}
+  .seg button{flex:1;background:none;border:none;border-radius:7px;padding:6px 10px;
+              font-size:13px;font-weight:500;color:var(--label);cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--fill);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+  /* ---------- search + controls ---------- */
+  .searchwrap{padding:0 16px 10px;display:flex;gap:10px;align-items:center}
+  .search{flex:1;background:var(--group2);border:none;border-radius:10px;
+          padding:8px 12px;font-size:17px;color:var(--label)}
+  .search::placeholder{color:var(--label3)}
+  .pickers{display:flex;gap:10px;padding:0 16px 12px;align-items:center}
+  .pickers select{background:var(--group2);border:none;border-radius:9px;padding:7px 10px;
+                  font-size:13px;color:var(--label);flex:1;min-width:0}
+
+  /* ---------- stat strip ---------- */
+  .stats{display:flex;gap:10px;padding:0 16px 14px}
+  .stat{flex:1;background:var(--group);border-radius:10px;padding:11px 13px}
+  .stat b{display:block;font-size:22px;font-weight:600;letter-spacing:.01em;
+          font-variant-numeric:tabular-nums}
+  .stat span{font-size:13px;color:var(--label2)}
+
+  /* ---------- card rows ---------- */
+  .cardrow{display:flex;gap:12px;padding:10px 16px;position:relative;align-items:flex-start}
+  .cardrow + .cardrow::before{content:'';position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--sep)}
+  .cardrow img{width:44px;height:61px;object-fit:cover;border-radius:5px;flex-shrink:0;
+               background:var(--group2);cursor:zoom-in}
+  .cardrow .body{flex:1;min-width:0}
+  .cardrow .name{font-size:17px;font-weight:500;line-height:1.25}
+  .cardrow .price{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cardrow .acts{display:flex;gap:18px;margin-top:7px;flex-wrap:wrap}
+  .cardrow .acts a,.cardrow .acts button{background:none;border:none;padding:0;
+    font-size:15px;color:var(--blue);cursor:pointer}
+  .cardrow .acts .del{color:var(--red)}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 7px;
+         border-radius:20px;background:var(--group2);color:var(--label2);
+         border:none;cursor:pointer;vertical-align:middle}
+  .badge.ok{background:rgba(48,209,88,.16);color:var(--green)}
+  .badge.no{background:rgba(255,69,58,.16);color:var(--red)}
+  .badge.warn{background:rgba(255,159,10,.16);color:var(--orange)}
+
+  /* ---------- gallery ---------- */
+  .gallery{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+           padding:0 16px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .gallery::-webkit-scrollbar{display:none}
+  .slide{flex:0 0 calc(100% - 44px);scroll-snap-align:center;background:var(--group);
+         border-radius:14px;overflow:hidden}
+  .slide .pic{width:100%;aspect-ratio:3/4;object-fit:contain;background:#000;display:block;cursor:zoom-in}
+  .slide .meta{padding:13px 15px 15px}
+  .slide .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .slide h2{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+  .slide .price{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .slide .line{font-size:14px;color:var(--label2);margin-top:4px;line-height:1.4}
+  .slide .acts{display:flex;gap:18px;margin-top:12px;padding-top:11px;border-top:.5px solid var(--sep)}
+  .slide .acts a,.slide .acts button{background:none;border:none;padding:0;font-size:15px;
+    color:var(--blue);cursor:pointer}
+  .slide .acts .del{color:var(--red)}
+  .pagedots{text-align:center;font-size:13px;color:var(--label2);padding-bottom:6px}
+
+  /* ---------- scan screen ---------- */
+  .scanpad{padding:0 16px}
+  .capture{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+  .hintline{font-size:13px;color:var(--label2);line-height:1.45;padding:0 4px;letter-spacing:-.01em}
+  .pending{display:flex;align-items:center;gap:13px;background:var(--group);
+           border-radius:12px;padding:11px 13px;margin-bottom:14px}
+  .pending img{width:40px;height:56px;object-fit:cover;border-radius:5px;flex-shrink:0}
+  .pending .t{flex:1;min-width:0}
+  .pending b{display:block;font-size:15px;font-weight:600}
+  .pending span{font-size:13px;color:var(--label2);line-height:1.35}
+  .pending button{background:var(--group2);border:none;border-radius:8px;padding:7px 12px;
+                  font-size:15px;color:var(--label);cursor:pointer;flex-shrink:0}
+
+  .progress{background:var(--group);border-radius:12px;padding:13px 15px;margin-bottom:14px}
+  .progress .t{display:flex;justify-content:space-between;font-size:15px;margin-bottom:9px}
+  .progress .t span:last-child{color:var(--label2);font-variant-numeric:tabular-nums}
+  .track{height:4px;background:var(--fill);border-radius:2px;overflow:hidden}
+  .track div{height:100%;background:var(--blue);border-radius:2px;transition:width .25s ease}
+
+  .notice{background:var(--group);border-radius:12px;padding:13px 15px;margin-bottom:14px;
+          font-size:15px;line-height:1.45;color:var(--label2)}
+  .notice.bad{background:rgba(255,69,58,.14);color:#FFB4AE}
+
+  /* ---------- result card ---------- */
+  .result{background:var(--group);border-radius:14px;overflow:hidden;margin-bottom:16px}
+  .result .hero{display:flex;gap:13px;padding:15px 15px 13px}
+  .result .hero img{width:62px;height:86px;object-fit:cover;border-radius:6px;flex-shrink:0;cursor:zoom-in}
+  .result h2{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.14}
+  .result .lineage{font-size:15px;color:var(--label2);margin-top:3px}
+  .result .conf{font-size:13px;margin-top:6px}
+  .result .facts{border-top:.5px solid var(--sep)}
+  .fact{display:flex;justify-content:space-between;gap:14px;padding:9px 15px;font-size:15px;
+        position:relative}
+  .fact + .fact::before{content:'';position:absolute;left:15px;right:0;top:0;height:.5px;background:var(--sep)}
+  .fact span{color:var(--label2)}
+  .fact b{font-weight:400;font-variant-numeric:tabular-nums;text-align:right}
+  .result .pad{padding:14px 15px;display:flex;flex-direction:column;gap:10px;
+               border-top:.5px solid var(--sep)}
+
+  .field{width:100%;background:var(--group2);border:none;border-radius:10px;
+         padding:11px 13px;font-size:17px;color:var(--label)}
+  .field::placeholder{color:var(--label3)}
+  textarea.field{resize:vertical;line-height:1.4}
+  .fieldrow{display:flex;gap:10px}
+  .fieldrow .field{flex:1;min-width:0}
+  .fieldlbl{font-size:13px;color:var(--label2);text-transform:uppercase;letter-spacing:.06em;
+            padding:4px 2px 0}
+
+  .toggle{display:flex;align-items:center;gap:12px;padding:4px 2px}
+  .toggle span{flex:1;font-size:15px;color:var(--label2)}
+  .switch{position:relative;width:51px;height:31px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .switch i{position:absolute;inset:0;background:var(--fill);border-radius:31px;
+            transition:background .2s;cursor:pointer}
+  .switch i::after{content:'';position:absolute;width:27px;height:27px;left:2px;top:2px;
+                   background:#fff;border-radius:50%;transition:transform .2s;
+                   box-shadow:0 2px 5px rgba(0,0,0,.35)}
+  .switch input:checked + i{background:var(--green)}
+  .switch input:checked + i::after{transform:translateX(20px)}
+
+  /* ---------- empty states ---------- */
+  .empty{padding:56px 34px;text-align:center}
+  .empty h2{font-size:20px;font-weight:600;margin-bottom:7px}
+  .empty p{font-size:15px;color:var(--label2);line-height:1.45}
+
+  /* ---------- checklist ---------- */
+  .setcard{background:var(--group);border-radius:12px;margin:0 16px 12px;overflow:hidden}
+  .setcard .h{padding:13px 15px 11px}
+  .setcard .h b{font-size:17px;font-weight:600;display:block}
+  .setcard .h span{font-size:13px;color:var(--label2)}
+  .setcard .nums{padding:0 15px 13px;font-size:14px;color:var(--label2);line-height:1.5;
+                 font-variant-numeric:tabular-nums}
+  .setcard .nums em{font-style:normal;color:var(--orange)}
+  .bar{height:4px;background:var(--fill);border-radius:2px;overflow:hidden;margin:0 15px 12px}
+  .bar div{height:100%;background:var(--blue)}
+
+  /* ---------- tab bar ---------- */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;
+          background:rgba(0,0,0,.88);backdrop-filter:saturate(180%) blur(20px);
+          -webkit-backdrop-filter:saturate(180%) blur(20px);
+          border-top:.5px solid var(--sep);padding-bottom:env(safe-area-inset-bottom);
+          max-width:620px;margin:0 auto}
+  .tabbar button{flex:1;background:none;border:none;padding:6px 0 4px;cursor:pointer;
+                 display:flex;flex-direction:column;align-items:center;gap:2px;
+                 color:var(--label3);font-size:10px;letter-spacing:.01em}
+  .tabbar button[aria-current="true"]{color:var(--blue)}
+  .tabbar svg{width:26px;height:26px;stroke:currentColor;fill:none;
+              stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- overlays ---------- */
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:60;
+            display:flex;align-items:center;justify-content:center;padding:20px}
+  .lightbox img{max-width:100%;max-height:82vh;border-radius:8px}
+  .lightbox .close{position:absolute;top:max(14px,env(safe-area-inset-top));right:16px;
+    background:var(--group2);border:none;border-radius:20px;padding:8px 16px;
+    font-size:15px;color:var(--label);cursor:pointer}
+  .lightbox .cap{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));
+    left:0;right:0;text-align:center;font-size:14px;color:var(--label2);padding:0 20px}
+
+  .toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 16px);transform:translateX(-50%);
+         background:var(--group2);border-radius:12px;padding:11px 18px;font-size:15px;
+         max-width:330px;text-align:center;z-index:50;
+         box-shadow:0 8px 30px rgba(0,0,0,.6)}
+
+  /* ---------- onboarding ---------- */
+  .setup{padding:10vh 24px 40px;max-width:420px;margin:0 auto}
+  .setup h1{font-size:34px;font-weight:700;letter-spacing:.374px;line-height:1.1;margin-bottom:12px}
+  .setup p{font-size:17px;color:var(--label2);line-height:1.45;margin-bottom:22px}
+  .setup .field{margin-bottom:12px}
+  .setup .fine{font-size:13px;color:var(--label3);margin-top:14px;line-height:1.4}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const app = $("app");
+
+const store = {
+  key:     () => localStorage.getItem("anthropicKey") || "",
+  setKey:  (v) => localStorage.setItem("anthropicKey", v),
+  hook:    () => localStorage.getItem("sheetHook") || "",
+  secret:  () => localStorage.getItem("sheetSecret") || "",
+  setHook: (u,s) => { localStorage.setItem("sheetHook",u); localStorage.setItem("sheetSecret",s); },
+  sheetUrl:    () => localStorage.getItem("sheetDoc") || "",
+  setSheetUrl: (v) => localStorage.setItem("sheetDoc", v),
+  pairs:    () => localStorage.getItem("pairMode") !== "off",
+  setPairs: (on) => localStorage.setItem("pairMode", on ? "on" : "off"),
+  listView:    () => localStorage.getItem("cardView") !== "gallery",
+  setListView: (on) => localStorage.setItem("cardView", on ? "list" : "gallery"),
+  sortBy:    () => localStorage.getItem("sortBy") || "recent",
+  setSortBy: (v) => localStorage.setItem("sortBy", v),
+  inbox:     () => localStorage.getItem("driveInbox") || "Cards to scan",
+  setInbox:  (v) => localStorage.setItem("driveInbox", v),
+  doneFolder:    () => localStorage.getItem("driveDone") || "Cards scanned",
+  setDoneFolder: (v) => localStorage.setItem("driveDone", v),
+  push:    () => localStorage.getItem("autoPush") !== "off",
+  setPush: (on) => localStorage.setItem("autoPush", on ? "on" : "off"),
+  cards:   () => { try { return JSON.parse(localStorage.getItem("cards")||"[]"); } catch { return []; } },
+  setCards:(v) => {
+    try { localStorage.setItem("cards", JSON.stringify(v)); return true; }
+    catch { return false; }
+  },
+};
+
+let view="scan", result=null, failure="", editing=null, toast=null;
+let paidIn="", valueIn="", noteIn="", sendOn=true, dupeOf=null;
+let lightbox=null, lastFull=null, lastSheetImg=null;
+let pending=null;          // front captured, waiting on the back
+let search="";
+let sheetCache=null, sheetLoading=false, sheetError="";
+let driveInfo=null, driveChecking=false;
+let edits={};              // corrections to the identified fields
+let queue={active:false,done:0,total:0};
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = (v) => v ? "$" + String(v).replace(/^\$/,"") : "";
+const query = (c) => [c.year,c.set,c.subset,c.player,c.parallel!=="Base"?c.parallel:"",c.cardNumber].filter(Boolean).join(" ").trim();
+const soldUrl = (c) => `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query(c))}&LH_Sold=1&LH_Complete=1&_sop=13`;
+const lineage = (c) => [c.year,c.set,c.subset].filter(Boolean).join(" ") || "Set not readable";
+
+// Must stay identical to fingerprint() in the Apps Script, including field
+// order and the sport field — the two are compared against each other when
+// checking which cards actually reached the Sheet.
+const fingerprint = (c) => [c.player,c.year,c.set,c.subset,c.parallel,c.cardNumber,c.serial,c.sport]
+  .map(v => String(v||"").toLowerCase().replace(/\s+/g," ").trim()).join("|");
+
+function findDuplicate(c){
+  const fp = fingerprint(c);
+  return store.cards().find(x => fingerprint(x) === fp) || null;
+}
+
+function say(msg){ toast=msg; render(); setTimeout(()=>{ toast=null; render(); },2600); }
+
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(new Error("read"));
+    r.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>rej(new Error("decode"));
+      img.onload=()=>{
+        const mk=(edge,q)=>{
+          const s=Math.min(1,edge/Math.max(img.width,img.height));
+          const c=document.createElement("canvas");
+          c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+          c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+          return c.toDataURL("image/jpeg",q);
+        };
+        res({full:mk(1200,.85), thumb:mk(460,.72), forSheet:mk(520,.7)});
+      };
+      img.src=r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+const PROMPT_PAIR = `You are shown two photographs of the SAME trading card: the first is the front, the second is the back. Use both. Respond ONLY with a JSON object, no markdown fences, no preamble.
+
+The front carries the parallel treatment (foil pattern, colour) and usually the serial numbering. The back carries the card number, the year, and the set name. Read each field from whichever photo shows it.
+
+Keys:
+"player": full player name, or null
+"year": the year printed on the card, usually in the copyright line on the back, or null
+"set": the set name, e.g. "Topps Chrome", "Bowman Chrome", "Panini Prizm", or null
+"subset": insert or subset name if any, else null
+"parallel": the parallel treatment from the front, e.g. "Base", "Refractor", "X-Fractor", "Blue Refractor", "Silver Prizm", or null
+"cardNumber": the card number, almost always on the back, or null
+"serial": the serial numbering if visible, e.g. "24/199", else null
+"isRookie": true if an RC shield or rookie designation is visible, else false
+"isAuto": true if the card carries an on-card or sticker autograph, else false
+"team": the team name shown on the card, or null
+"sport": "Baseball", "Football", "Basketball", "Soccer", "Hockey", or null
+"confidence": "high", "medium", or "low"
+"notes": one short sentence on anything you could not read, or null
+"firstImageIsFront": true if the FIRST photo shows the front of the card (the player photograph), false if the first photo shows the back (statistics, copyright line, card number)
+
+If the two photos are clearly different cards, say so in notes and set confidence to "low".`;
+
+const PROMPT = `Identify this sports trading card from the image. Respond ONLY with a JSON object, no markdown fences, no preamble.
+
+Keys:
+"player": full player name, or null if unreadable
+"year": the year printed on the card, or null
+"set": the set name, e.g. "Topps Chrome", "Topps Finest", "Bowman Chrome", "Panini Prizm", or null
+"subset": insert or subset name if any, else null
+"parallel": the parallel treatment if identifiable, e.g. "Base", "Refractor", "X-Fractor", "Prism Refractor", "Pulsar", or null
+"cardNumber": the card number if visible, else null
+"serial": the serial numbering if visible, e.g. "24/199", else null
+"isRookie": true if an RC shield or rookie designation is visible, else false
+"isAuto": true if the card carries an on-card or sticker autograph, else false
+"team": the team name shown on the card, or null
+"sport": "Baseball", "Football", "Basketball", "Soccer", "Hockey", or null
+"confidence": "high", "medium", or "low"
+"notes": one short sentence on what you could and could not read, or null
+
+Foil and refractor cards are reflective — if glare obscures part of the card, say so in notes and lower confidence rather than guessing. If the image shows the back of a card, read the card number and year from it. If the image does not contain a trading card, set every field to null and confidence to "low".`;
+
+async function readCard(imgs, back){
+  const pics = [imgs].concat(back ? [back] : []);
+  const r = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":store.key(),
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true",
+    },
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6", max_tokens:1000,
+      messages:[{role:"user",content:
+        pics.map(p=>({type:"image",source:{type:"base64",media_type:"image/jpeg",data:p.full.split(",")[1]}}))
+            .concat([{type:"text",text: back ? PROMPT_PAIR : PROMPT}])
+      }],
+    }),
+  });
+  if(r.status===401) throw new Error("Your API key was rejected. Change it below and try again.");
+  const data = await r.json();
+  if(data.error) throw new Error(data.error.message || "The service returned an error.");
+  const text = data.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+  return JSON.parse(text.replace(/```json|```/g,"").trim());
+}
+
+/**
+ * Saves whatever card is currently on screen, with any corrections and prices
+ * typed against it. Called before a new capture starts, so photographing the
+ * next card keeps the last one instead of throwing it away.
+ */
+async function commitResult(){
+  if(!result) return false;
+  const willPush = sendOn && !!store.hook();
+  const entry={...result,...edits,id:"c_"+Date.now(),
+               paid:paidIn.trim(), value:valueIn.trim(), note:noteIn.trim(),
+               at:Date.now(), pushed:willPush};
+  if(willPush) entry.sentFp = fingerprint(entry);
+  const stored = store.setCards([entry,...store.cards()]);
+  if(willPush) await pushToSheet(entry, lastSheetImg);
+  result=null; dupeOf=null; lastFull=null; lastSheetImg=null; edits={};
+  paidIn=""; valueIn=""; noteIn="";
+  return stored ? entry : false;
+}
+
+async function handleOne(file){
+  if(!file) return;
+
+  // Keep the card already on screen rather than losing it to the next shot.
+  const kept = await commitResult();
+  const imgs = await shrink(file).catch(()=>null);
+  if(!imgs){ failure="That image could not be read. Take the photo again."; return render(); }
+
+  // First photo of a pair: hold it and ask for the back.
+  if(store.pairs() && !pending){
+    pending = imgs;
+    failure=""; render();
+    if(kept) say(`${kept.player||"Card"} saved`);
+    return;
+  }
+
+  const front = pending || imgs;
+  const back  = pending ? imgs : null;
+  pending = null;
+  await identifyPair(front, back);
+  if(kept) say(`${kept.player||"Card"} saved`);
+}
+
+async function identifyPair(front, back){
+  queue={active:true,done:0,total:1};
+  failure=""; result=null; edits={}; paidIn=""; valueIn=""; noteIn=""; render();
+  try{
+    const parsed = await readCard(front, back);
+    if(!parsed.player && !parsed.set){
+      failure = back
+        ? "Neither photo showed a readable card. Fill the frame and tilt slightly so light does not bounce off the foil."
+        : "No card found in that photo. Fill the frame with the card and tilt it slightly.";
+    } else {
+      // The photo picker does not always hand images over in the order they
+      // were taken, so trust the read rather than the sequence.
+      const flipped = back && parsed.firstImageIsFront === false;
+      const face = flipped ? back : front;
+      const rear = flipped ? front : back;
+      result={...parsed, thumb:face.thumb, backThumb: rear?rear.thumb:null};
+      lastFull = face.full;
+      lastSheetImg = face.forSheet;
+      dupeOf = findDuplicate(result);
+      sendOn = store.push() && !dupeOf;
+    }
+  }catch(err){
+    failure = err.message || "Could not reach the service. Check your connection and try again.";
+  }
+  queue={active:false,done:0,total:0};
+  render();
+}
+
+async function handleMany(files){
+  const list=[...files];
+  if(!list.length) return;
+  if(list.length===1) return handleOne(list[0]);
+  if(store.pairs() && list.length%2) {
+    if(!confirm(`You picked ${list.length} photos.\n\nIn front-and-back mode these are read two at a time, so an odd number means the last card has no back. Carry on?`)) return;
+  }
+
+  failure=""; result=null;
+  queue={active:true,done:0,total:list.length};
+  view="scan"; render();
+
+  const step = store.pairs() ? 2 : 1;
+  let added=0, missed=0, dupes=0, full=false;
+  for(let i=0;i<list.length;i+=step){
+    try{
+      const imgs = await shrink(list[i]);
+      const back = (step===2 && list[i+1]) ? await shrink(list[i+1]) : null;
+      const parsed = await readCard(imgs, back);
+      if(!parsed.player && !parsed.set){ missed++; }
+      else if(findDuplicate(parsed)){ dupes++; }
+      else{
+        // Use whichever photo the read identified as the front, not whichever
+        // the picker happened to hand over first.
+        const flipped = back && parsed.firstImageIsFront === false;
+        const face = flipped ? back : imgs;
+        const rear = flipped ? imgs : back;
+        const willPush = store.push() && !!store.hook();
+        const entry={...parsed, thumb:face.thumb, backThumb: rear?rear.thumb:null,
+                     id:"c_"+Date.now()+"_"+added,
+                     paid:"", value:"", note:"", at:Date.now(), pushed:willPush};
+        if(willPush) entry.sentFp = fingerprint(entry);
+        if(!store.setCards([entry, ...store.cards()])){ full=true; break; }
+        if(willPush) await pushToSheet(entry, face.forSheet);
+        added++;
+      }
+    }catch{ missed++; }
+    queue.done += step; if(queue.done>queue.total) queue.done=queue.total;
+    render();
+  }
+
+  queue={active:false,done:0,total:0};
+  view="saved"; render();
+  const bits=[`${added} added`];
+  if(dupes)  bits.push(`${dupes} already in your collection`);
+  if(missed) bits.push(`${missed} unreadable`);
+  if(full)   bits.push("stopped — phone storage full");
+  say(bits.join(", "));
+}
+
+async function pushToSheet(card, image){
+  const url=store.hook();
+  if(!url) return {skipped:true};
+  const payload = image ? {...card, image} : card;
+  try{
+    await fetch(url,{method:"POST",mode:"no-cors",
+      headers:{"content-type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({secret:store.secret(),card:payload})});
+    return {ok:true};
+  }catch{ return {ok:false}; }
+}
+
+function jsonpFetch(url, params, timeoutMs=15000){
+  return new Promise((resolve,reject)=>{
+    const name = "jsonp_"+Date.now()+"_"+Math.floor(Math.random()*1e6);
+    const script = document.createElement("script");
+    let done=false;
+    const cleanup=()=>{ delete window[name]; script.remove(); clearTimeout(timer); };
+    window[name]=(data)=>{ if(done) return; done=true; cleanup(); resolve(data); };
+    const timer=setTimeout(()=>{ if(done) return; done=true; cleanup(); reject(new Error("Timed out waiting for the Sheet.")); }, timeoutMs);
+    const qs=new URLSearchParams({...params, callback:name}).toString();
+    script.src = url + (url.includes("?")?"&":"?") + qs;
+    script.onerror=()=>{ if(done) return; done=true; cleanup(); reject(new Error("Could not reach the Sheet.")); };
+    document.head.appendChild(script);
+  });
+}
+
+async function refreshSheet(){
+  if(!store.hook()){ sheetError="Connect a Sheet first, in Settings."; render(); return; }
+  sheetLoading=true; sheetError=""; render();
+  try{
+    const data = await jsonpFetch(store.hook(), {secret:store.secret()});
+    if(!data.ok) throw new Error(data.error || "The Sheet returned an error.");
+    sheetCache = {at:Date.now(), cards:data.cards||[]};
+  }catch(err){
+    sheetError = err.message || "Could not reach the Sheet.";
+  }
+  sheetLoading=false; render();
+}
+
+async function updateSheet(card, matchFp){
+  const url=store.hook();
+  if(!url) return {skipped:true};
+  // The thumbnail always goes along. The script decides what to do with it:
+  // it fills an empty or previously failed Photo cell, but leaves a good
+  // photo alone so a text edit cannot downgrade it.
+  const payload = {...card, fallbackImage: card.thumb};
+  try{
+    await fetch(url,{method:"POST",mode:"no-cors",
+      headers:{"content-type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({secret:store.secret(),action:"update",match:matchFp,card:payload})});
+    return {ok:true};
+  }catch{ return {ok:false}; }
+}
+
+const cell=(v)=>{ const s=v==null?"":String(v); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
+function csv(){
+  const cards=store.cards();
+  const head=["Date added","Player","Year","Set","Subset","Parallel","Card number","Serial","Rookie","Sport","Paid","Value","Notes","Read confidence","Search string"];
+  const body=cards.map(c=>[new Date(c.at).toLocaleDateString(),c.player,c.year,c.set,c.subset,c.parallel,
+    c.cardNumber,c.serial,c.isRookie?"Yes":"No",c.sport,
+    c.paid?String(c.paid).replace(/^\$/,""):"", c.value?String(c.value).replace(/^\$/,""):"",
+    c.note,c.confidence,query(c)].map(cell));
+  return [head.map(cell),...body].map(r=>r.join(",")).join("\n");
+}
+function download(){
+  if(!store.cards().length) return;
+  const url=URL.createObjectURL(new Blob([csv()],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");
+  a.href=url; a.download=`cards-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  say("File saved — use Share to put it in Drive");
+}
+
+
+/* ==================== drive inbox ==================== */
+
+/** Same output shape as shrink(), but starting from base64 rather than a File. */
+function shrinkDataUrl(dataUrl){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onerror=()=>rej(new Error("decode"));
+    img.onload=()=>{
+      const mk=(edge,q)=>{
+        const s=Math.min(1,edge/Math.max(img.width,img.height));
+        const c=document.createElement("canvas");
+        c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        return c.toDataURL("image/jpeg",q);
+      };
+      res({full:mk(1200,.85), thumb:mk(460,.72), forSheet:mk(520,.7)});
+    };
+    img.src=dataUrl;
+  });
+}
+
+async function runDriveInbox(){
+  if(!store.hook()){ failure="Connect a Sheet in Settings first."; return render(); }
+
+  failure=""; result=null;
+  queue={active:true,done:0,total:0}; view="scan"; render();
+
+  let list;
+  try{
+    const r = await jsonpFetch(store.hook(), {secret:store.secret(), action:"inbox", inbox:store.inbox()});
+    if(!r.ok) throw new Error(r.error||"Could not read the folder.");
+    list = r.files || [];
+  }catch(err){
+    queue={active:false,done:0,total:0};
+    failure = err.message || "Could not reach Drive.";
+    return render();
+  }
+
+  if(!list.length){
+    queue={active:false,done:0,total:0};
+    failure = `Nothing in your "Cards to scan" folder. Drop photos there, then try again.`;
+    return render();
+  }
+
+  const step = store.pairs() ? 2 : 1;
+  queue={active:true,done:0,total:list.length};
+  render();
+
+  let added=0, missed=0, dupes=0, full=false;
+  const finished=[];
+
+  for(let i=0;i<list.length;i+=step){
+    const pair=[list[i], list[i+1]].filter(Boolean).slice(0, step);
+    try{
+      const blobs=[];
+      for(const f of pair){
+        const got = await jsonpFetch(store.hook(), {secret:store.secret(), action:"file", id:f.id}, 30000);
+        if(!got.ok) throw new Error(got.error||"file");
+        blobs.push(await shrinkDataUrl(`data:${got.mime};base64,${got.data}`));
+      }
+
+      const parsed = await readCard(blobs[0], blobs[1]||null);
+
+      if(!parsed.player && !parsed.set){ missed++; }
+      else if(findDuplicate(parsed)){ dupes++; finished.push(...pair.map(f=>f.id)); }
+      else{
+        const flipped = blobs[1] && parsed.firstImageIsFront === false;
+        const face = flipped ? blobs[1] : blobs[0];
+        const rear = flipped ? blobs[0] : blobs[1];
+        const willPush = store.push() && !!store.hook();
+        const entry={...parsed, thumb:face.thumb, backThumb: rear?rear.thumb:null,
+                     id:"c_"+Date.now()+"_"+added, paid:"", value:"", note:"",
+                     at:Date.now(), pushed:willPush};
+        if(willPush) entry.sentFp = fingerprint(entry);
+        if(!store.setCards([entry, ...store.cards()])){ full=true; break; }
+        if(willPush) await pushToSheet(entry, face.forSheet);
+        added++;
+        finished.push(...pair.map(f=>f.id));
+      }
+    }catch{ missed++; }
+
+    queue.done = Math.min(queue.done + step, queue.total);
+    render();
+  }
+
+  // Only photos that produced a card are moved. Anything unreadable stays in
+  // the inbox so it is not quietly lost.
+  if(finished.length){
+    try{
+      await fetch(store.hook(), {method:"POST", mode:"no-cors",
+        headers:{"content-type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({secret:store.secret(), action:"inboxDone", ids:finished,
+                             inbox:store.inbox(), done:store.doneFolder()})});
+    }catch{}
+  }
+
+  queue={active:false,done:0,total:0};
+  view="saved"; render();
+  const bits=[`${added} added`];
+  if(dupes)  bits.push(`${dupes} already had`);
+  if(missed) bits.push(`${missed} left in the folder`);
+  if(full)   bits.push("phone storage full");
+  say(bits.join(", "));
+}
+
+async function checkDriveFolders(){
+  if(!store.hook()){ say("Connect a Sheet first"); return; }
+  driveChecking=true; render();
+  try{
+    const r = await jsonpFetch(store.hook(), {secret:store.secret(), action:"folders",
+                                              inbox:store.inbox(), done:store.doneFolder()});
+    driveInfo = r.ok ? r : null;
+    if(!r.ok) say(r.error||"Could not reach Drive");
+  }catch(err){
+    driveInfo=null; say(err.message||"Could not reach Drive");
+  }
+  driveChecking=false; render();
+}
+
+/* ==================== sorting and filtering ==================== */
+const SORTS = {
+  recent:      { label:"Newest first",  fn:(a,b)=> (b.at||b.row||0)-(a.at||a.row||0) },
+  oldest:      { label:"Oldest first",  fn:(a,b)=> (a.at||a.row||0)-(b.at||b.row||0) },
+  player:      { label:"Player A–Z",    fn:(a,b)=> (a.player||"").localeCompare(b.player||"") },
+  "value-desc":{ label:"Highest value", fn:(a,b)=> numSort(b.value)-numSort(a.value) },
+  "value-asc": { label:"Lowest value",  fn:(a,b)=> numSort(a.value)-numSort(b.value) },
+};
+
+/** Unpriced cards sink to the bottom rather than counting as zero. */
+function numSort(v){
+  const n=parseFloat(String(v||"").replace(/[^0-9.]/g,""));
+  return isNaN(n) ? -Infinity : n;
+}
+
+function numOr0(v){
+  const n=parseFloat(String(v||"").replace(/[^0-9.]/g,""));
+  return isNaN(n) ? 0 : n;
+}
+
+function sortCards(list, mode){
+  return [...list].sort((SORTS[mode] || SORTS.recent).fn);
+}
+
+function matches(c, q){
+  if(!q) return true;
+  return [c.player,c.team,c.year,c.set,c.subset,c.parallel,c.cardNumber,c.serial,c.sport,c.note]
+    .filter(Boolean).join(" ").toLowerCase().includes(q);
+}
+
+function dupeCounts(all){
+  const m={};
+  all.forEach(c=>{ const fp=fingerprint(c); m[fp]=(m[fp]||0)+1; });
+  return m;
+}
+
+/* ==================== icons ==================== */
+const ICON = {
+  scan:  '<svg viewBox="0 0 24 24"><path d="M3 8V5.5A1.5 1.5 0 014.5 4H7M17 4h2.5A1.5 1.5 0 0121 5.5V8M21 16v2.5a1.5 1.5 0 01-1.5 1.5H17M7 20H4.5A1.5 1.5 0 013 18.5V16"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg>',
+  stack: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="2"/><path d="M8 3h10a2 2 0 012 2v12"/></svg>',
+  sheet: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M9 5h9a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h1"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M8.5 12.5l2 2 4-4.5"/></svg>',
+  gear:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5v.2a2 2 0 11-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1h-.2a2 2 0 110-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3h.1a1.6 1.6 0 001-1.5v-.2a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8v.1a1.6 1.6 0 001.5 1h.2a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg>',
+  chev:  '<svg viewBox="0 0 24 24" width="17" height="17" style="stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>',
+};
+
+const TABS = [
+  ["scan","Scan",ICON.scan],
+  ["saved","Collection",ICON.stack],
+  ["sheet","Sheet",ICON.sheet],
+  ["checklist","Sets",ICON.check],
+  ["settings","Settings",ICON.gear],
+];
+
+/* ==================== shell ==================== */
+function render(){
+  if(!store.key()) return firstRun();
+
+  const cards = store.cards();
+  const page =
+      view==="scan"      ? scanView()
+    : view==="saved"     ? savedView(cards)
+    : view==="sheet"     ? sheetView()
+    : view==="checklist" ? checklistView(cards)
+    :                      settingsView();
+
+  app.innerHTML = `
+    ${page}
+    <nav class="tabbar">
+      ${TABS.map(([k,label,icon])=>
+        `<button data-go="${k}" aria-current="${view===k}">${icon}<span>${label}</span></button>`).join("")}
+    </nav>
+    ${toast ? `<div class="toast" role="status">${esc(toast)}</div>` : ""}
+    ${lightbox ? `
+      <div class="lightbox" id="lb">
+        <button class="close" id="lbClose">Done</button>
+        <img src="${lightbox.src}" alt="">
+        ${lightbox.cap?`<div class="cap">${esc(lightbox.cap)}</div>`:""}
+      </div>` : ""}
+  `;
+  wire();
+}
+
+function titleBar(title, subtitle, action){
+  return `
+    <div class="navbar">${action?`<div class="inline"><span></span>${action}</div>`:""}</div>
+    <div class="largetitle">
+      <h1>${esc(title)}</h1>
+      ${subtitle?`<p>${esc(subtitle)}</p>`:""}
+    </div>`;
+}
+
+/* ==================== scan ==================== */
+function scanView(){
+  const pct = queue.total ? Math.round(queue.done/queue.total*100) : 0;
+  const mode = store.pairs() ? "Front and back" : "Front only";
+
+  return `
+    ${titleBar("Read a card", mode + " · about " + (store.pairs()?"2¢":"1¢") + " each")}
+    <div class="screen">
+      <input type="file" id="cam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="lib" accept="image/*" multiple hidden>
+
+      <div class="scanpad">
+        <div class="capture">
+          <button class="filled" id="shoot" ${queue.active?"disabled":""}>${
+            queue.active ? "Reading…" :
+            pending ? "Photograph the back" :
+            store.pairs() ? "Photograph the front" : "Photograph the card"}</button>
+          <button class="tinted" id="pick" ${queue.active?"disabled":""}>Choose from Photos</button>
+          ${store.hook()?`<button class="gray" id="drive" ${queue.active?"disabled":""}>Scan Drive inbox</button>`:""}
+        </div>
+
+        ${pending?`
+          <div class="pending">
+            <img src="${pending.thumb}" alt="">
+            <div class="t"><b>Front captured</b><span>Now the back, for the card number and year.</span></div>
+            <button id="skipBack">Skip</button>
+          </div>`:""}
+
+        ${queue.active && queue.total>1 ? `
+          <div class="progress">
+            <div class="t"><span>Reading your photos</span><span>${queue.done} of ${queue.total}</span></div>
+            <div class="track"><div style="width:${pct}%"></div></div>
+          </div>`:""}
+
+        ${failure?`<div class="notice bad">${esc(failure)}</div>`:""}
+
+        ${!result && !failure && !queue.active ? `
+          <p class="hintline">${store.pairs()
+            ? "Two photos per card. The back carries the card number and year, the front carries the parallel and serial. Pick a batch from Photos and they are read in pairs."
+            : "One photo per card. You will get the parallel and serial, but the card number and year usually print on the back only."}</p>`:""}
+      </div>
+
+      ${result ? resultCard(result) : ""}
+    </div>`;
+}
+
+function resultCard(c){
+  const facts = [
+    ["Parallel", c.parallel || "—"],
+    ["Card no.", edits.cardNumber ?? c.cardNumber ?? "—"],
+    ["Serial",   edits.serial ?? c.serial ?? "Not numbered"],
+    ["Rookie",   c.isRookie ? "Yes" : "No"],
+    ["Auto",     c.isAuto ? "Yes" : "No"],
+    ["Team",     c.team || "—"],
+    ["Sport",    c.sport || "—"],
+  ];
+  const confColor = c.confidence==="high" ? "var(--green)" : c.confidence==="medium" ? "var(--orange)" : "var(--red)";
+  const confText  = c.confidence==="high" ? "Read clearly"
+                  : c.confidence==="medium" ? "Partly readable — check the details"
+                  : "Low confidence — verify before you rely on it";
+  return `
+    <div class="scanpad">
+      <div class="result">
+        <div class="hero">
+          <img id="bigShot" src="${c.thumb}" alt="">
+          ${c.backThumb?`<img id="backShot" src="${c.backThumb}" alt="">`:""}
+          <div style="min-width:0;flex:1">
+            <h2>${esc(c.player || "Name not readable")}</h2>
+            <div class="lineage">${esc(lineage(c))}</div>
+            <div class="conf" style="color:${confColor}">${confText}</div>
+          </div>
+        </div>
+
+        <div class="facts">
+          ${facts.map(([k,v])=>`<div class="fact"><span>${k}</span><b>${esc(v)}</b></div>`).join("")}
+        </div>
+
+        ${c.notes?`<div class="notice" style="margin:0;border-radius:0;background:none;
+          border-top:.5px solid var(--sep);font-size:13px">${esc(c.notes)}</div>`:""}
+
+        ${dupeOf?`<div class="notice bad" style="margin:0;border-radius:0">
+          Already in your collection, added ${new Date(dupeOf.at).toLocaleDateString()}${
+          dupeOf.paid?` for $${esc(String(dupeOf.paid).replace(/^\$/,""))}`:""}.</div>`:""}
+
+        <div class="pad">
+          <a class="tinted" id="sold" href="${soldUrl({...c,...edits})}" target="_blank" rel="noopener"
+             style="text-align:center">Look up sold prices</a>
+
+          <div class="fieldlbl">Corrections</div>
+          <div class="fieldrow">
+            <input class="field" id="fixNum" placeholder="Card no." value="${esc(edits.cardNumber ?? c.cardNumber ?? "")}">
+            <input class="field" id="fixYear" placeholder="Year" value="${esc(edits.year ?? c.year ?? "")}">
+          </div>
+          <div class="fieldrow">
+            <input class="field" id="fixPar" placeholder="Parallel" value="${esc(edits.parallel ?? c.parallel ?? "")}">
+            <input class="field" id="fixSer" placeholder="Serial" value="${esc(edits.serial ?? c.serial ?? "")}">
+          </div>
+
+          <div class="fieldlbl">Money</div>
+          <div class="fieldrow">
+            <input class="field" id="paid" inputmode="decimal" placeholder="Paid" value="${esc(paidIn)}">
+            <input class="field" id="value" inputmode="decimal" placeholder="Worth" value="${esc(valueIn)}">
+          </div>
+          <textarea class="field" id="note" rows="2" placeholder="Notes">${esc(noteIn)}</textarea>
+
+          ${store.hook()?`
+            <label class="toggle">
+              <span>Also send to your Sheet</span>
+              <span class="switch"><input type="checkbox" id="sendChk" ${sendOn?"checked":""}><i></i></span>
+            </label>`:""}
+
+          <button class="filled" id="keep">${dupeOf?"Add anyway":"Add to collection"}</button>
+          <p class="hintline" style="text-align:center;padding:2px">Photographing the next card saves this one too.</p>
+          <button class="gray" id="discard">Discard this card</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ==================== collection ==================== */
+function savedView(all){
+  const q = search.trim().toLowerCase();
+  let cards = q ? all.filter(c=>matches(c,q)) : all;
+  cards = sortCards(cards, store.sortBy());
+  const dupeMap = dupeCounts(all);
+  const sheetFps = sheetCache ? new Set(sheetCache.cards.map(fingerprint)) : null;
+
+  if(!all.length) return `
+    ${titleBar("Collection")}
+    <div class="empty">
+      <h2>No cards yet</h2>
+      <p>Read a card and it lands here, with what you paid, what it is worth, and a link to what it last sold for.</p>
+    </div>`;
+
+  const worth = cards.reduce((s,c)=>s+numOr0(c.value),0);
+  const cost  = cards.reduce((s,c)=>s+numOr0(c.paid ),0);
+  const safe  = sheetFps ? all.filter(c=>sheetFps.has(fingerprint(c))).length : 0;
+
+  return `
+    ${titleBar("Collection", `${all.length} card${all.length===1?"":"s"}`)}
+    <div class="screen">
+      <div class="searchwrap">
+        <input class="search" id="find" placeholder="Search" value="${esc(search)}">
+      </div>
+      <div class="pickers">
+        <select id="sortSel">${Object.entries(SORTS).map(([k,v])=>
+          `<option value="${k}" ${k===store.sortBy()?"selected":""}>${v.label}</option>`).join("")}</select>
+        <div class="seg">
+          <button data-view2="list"    aria-pressed="${store.listView()}">List</button>
+          <button data-view2="gallery" aria-pressed="${!store.listView()}">Cards</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b>$${cost.toFixed(2)}</b><span>Paid</span></div>
+        <div class="stat"><b>$${worth.toFixed(2)}</b><span>Worth</span></div>
+        ${q?`<div class="stat"><b>${cards.length}</b><span>Matching</span></div>`:""}
+      </div>
+
+      ${sheetCache
+        ? `<div class="hintline" style="padding:0 20px 12px">${safe} of ${all.length} confirmed on your Sheet ·
+             <button id="recheck" style="background:none;border:none;color:var(--blue);font-size:13px;padding:0;cursor:pointer">Check again</button></div>`
+        : `<div class="hintline" style="padding:0 20px 12px"><button id="doCheck" style="background:none;border:none;color:var(--blue);font-size:13px;padding:0;cursor:pointer">Check which are on your Sheet</button></div>`}
+
+      ${q && !cards.length
+        ? `<div class="empty"><h2>No matches</h2><p>Try part of a player's surname.</p></div>`
+        : (store.listView() ? cards.map(c=>listRow(c,dupeMap,sheetFps)).join("") : galleryRows(cards, sheetFps))}
+    </div>`;
+}
+
+function listRow(c, dupeMap, sheetFps){
+  const dupes = dupeMap[fingerprint(c)];
+  return `
+    <div class="cardrow">
+      <img data-zoom="${c.id}" src="${c.thumb}" alt="">
+      <div class="body">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+          <span style="min-width:0">
+            <span class="name">${esc(c.player||"Name not readable")}</span>
+            ${dupes>1?` <button class="badge" data-dupe="${c.id}">${dupes}×</button>`:""}
+          </span>
+          ${c.value?`<span class="price">${esc(money(c.value))}</span>`:""}
+        </div>
+        <div class="sub">${esc([c.team,lineage(c),c.parallel,c.serial,c.cardNumber?"#"+c.cardNumber:""].filter(Boolean).join(" · "))}</div>
+        ${c.note?`<div class="sub" style="color:var(--label2);margin-top:4px">${esc(c.note)}</div>`:""}
+        ${sheetFps?`<div style="margin-top:6px"><span class="badge ${sheetFps.has(fingerprint(c))?"ok":"no"}">${
+          sheetFps.has(fingerprint(c))?"On your Sheet":"Not on Sheet"}</span></div>`:""}
+        ${editing===c.id ? editFields(c) : `
+          <div class="acts">
+            <a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a>
+            <button data-edit="${c.id}">Edit</button>
+            ${store.hook()?`<button data-send="${c.id}">${c.pushed?"Update Sheet":"Send"}</button>`:""}
+            <button class="del" data-drop="${c.id}">Remove</button>
+          </div>`}
+      </div>
+    </div>`;
+}
+
+function galleryRows(cards, sheetFps){
+  if(!cards.length) return "";
+  return `
+    <div class="gallery" id="gal">
+      ${cards.map(c=>`
+        <div class="slide">
+          <img class="pic" data-zoom="${c.id}" src="${c.thumb}" alt="${esc(c.player||"Card")}">
+          <div class="meta">
+            <div class="top">
+              <h2>${esc(c.player||"Name not readable")}</h2>
+              ${c.value?`<span class="price">${esc(money(c.value))}</span>`:""}
+            </div>
+            <div class="line">${esc([lineage(c),c.parallel,c.serial,c.cardNumber?"#"+c.cardNumber:""].filter(Boolean).join(" · "))}</div>
+            ${c.note?`<div class="line" style="color:var(--label2)">${esc(c.note)}</div>`:""}
+            ${sheetFps?`<div style="margin-top:8px"><span class="badge ${sheetFps.has(fingerprint(c))?"ok":"no"}">${
+              sheetFps.has(fingerprint(c))?"On your Sheet":"Not on Sheet"}</span></div>`:""}
+            <div class="acts">
+              <a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a>
+              <button data-edit="${c.id}">Edit</button>
+              ${store.hook()?`<button data-send="${c.id}">${c.pushed?"Update":"Send"}</button>`:""}
+              <button class="del" data-drop="${c.id}">Remove</button>
+            </div>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="pagedots">Swipe · ${cards.length} card${cards.length===1?"":"s"}</div>
+    ${editing ? `<div class="scanpad">${editFields(cards.find(c=>c.id===editing)||{})}</div>` : ""}`;
+}
+
+function editFields(c){
+  if(!c || !c.id) return "";
+  return `
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+      <div class="fieldlbl">Card</div>
+      <input class="field" data-f-player="${c.id}" placeholder="Player" value="${esc(c.player||"")}">
+      <input class="field" data-f-team="${c.id}" placeholder="Team" value="${esc(c.team||"")}">
+      <div class="fieldrow">
+        <input class="field" data-f-year="${c.id}" placeholder="Year" value="${esc(c.year||"")}">
+        <input class="field" data-f-cardNumber="${c.id}" placeholder="Card no." value="${esc(c.cardNumber||"")}">
+      </div>
+      <input class="field" data-f-set="${c.id}" placeholder="Set" value="${esc(c.set||"")}">
+      <input class="field" data-f-subset="${c.id}" placeholder="Subset" value="${esc(c.subset||"")}">
+      <div class="fieldrow">
+        <input class="field" data-f-parallel="${c.id}" placeholder="Parallel" value="${esc(c.parallel||"")}">
+        <input class="field" data-f-serial="${c.id}" placeholder="Serial" value="${esc(c.serial||"")}">
+      </div>
+      <div class="fieldlbl">Money</div>
+      <div class="fieldrow">
+        <input class="field" data-f-paid="${c.id}" inputmode="decimal" placeholder="Paid" value="${esc(c.paid||"")}">
+        <input class="field" data-f-value="${c.id}" inputmode="decimal" placeholder="Worth" value="${esc(c.value||"")}">
+      </div>
+      <textarea class="field" data-f-note="${c.id}" rows="2" placeholder="Notes">${esc(c.note||"")}</textarea>
+      <button class="filled" data-save="${c.id}">${c.pushed&&store.hook()?"Save and update Sheet":"Save"}</button>
+      <button class="gray" data-done="${c.id}">Cancel</button>
+    </div>`;
+}
+
+/* ==================== on the sheet ==================== */
+function sheetView(){
+  if(!store.hook()) return `
+    ${titleBar("On the Sheet")}
+    <div class="empty">
+      <h2>No Sheet connected</h2>
+      <p>Connect one in Settings and this shows exactly what Google has stored, rather than what this phone believes it sent.</p>
+    </div>`;
+
+  if(sheetLoading) return `
+    ${titleBar("On the Sheet")}
+    <div class="empty"><h2>Checking…</h2><p>Reading every row directly from Google.</p></div>`;
+
+  if(!sheetCache) return `
+    ${titleBar("On the Sheet")}
+    <div class="empty">
+      <h2>Not checked yet</h2>
+      <p>This reads live from your spreadsheet, so it is always accurate — unlike Collection, which reflects what this phone attempted to send.</p>
+    </div>
+    ${sheetError?`<div class="scanpad"><div class="notice bad">${esc(sheetError)}</div></div>`:""}
+    <div class="scanpad"><button class="filled" id="sheetGo">Check now</button></div>`;
+
+  const q = search.trim().toLowerCase();
+  let rows = q ? sheetCache.cards.filter(c=>matches(c,q)) : sheetCache.cards;
+  rows = sortCards(rows, store.sortBy());
+
+  return `
+    ${titleBar("On the Sheet", `${sheetCache.cards.length} rows · checked ${new Date(sheetCache.at).toLocaleTimeString()}`,
+      `<button class="act" id="sheetGo">Refresh</button>`)}
+    <div class="screen">
+      <div class="searchwrap"><input class="search" id="find" placeholder="Search" value="${esc(search)}"></div>
+      <div class="pickers">
+        <select id="sortSel">${Object.entries(SORTS).map(([k,v])=>
+          `<option value="${k}" ${k===store.sortBy()?"selected":""}>${v.label}</option>`).join("")}</select>
+      </div>
+      ${!rows.length ? `<div class="empty"><h2>${q?"No matches":"Nothing on the Sheet yet"}</h2></div>`
+        : rows.map(c=>`
+          <div class="cardrow">
+            <div class="body">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+                <span class="name">${esc(c.player||"Unnamed row")}</span>
+                ${c.value?`<span class="price">${esc(money(c.value))}</span>`:""}
+              </div>
+              <div class="sub">${esc([lineage(c),c.parallel,c.serial].filter(Boolean).join(" · "))}${
+                c.cardId?` · #${esc(c.cardId)}`:""} · row ${c.row}</div>
+              ${c.status?`<div class="sub">${esc(c.status)}${c.location?" · "+esc(c.location):""}</div>`:""}
+              <div class="acts"><a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a></div>
+            </div>
+          </div>`).join("")}
+    </div>`;
+}
+
+/* ==================== checklist ==================== */
+function buildSets(cards){
+  const groups = {};
+  cards.forEach(c=>{
+    const key = [c.year,c.set,c.subset].filter(Boolean).join(" · ") || "Unknown set";
+    if(!groups[key]) groups[key] = {key, sport:c.sport||"", nums:[], count:0, value:0};
+    const g = groups[key];
+    g.count++;
+    g.value += numOr0(c.value);
+    const n = parseInt(String(c.cardNumber||"").replace(/[^0-9]/g,""),10);
+    if(!isNaN(n)) g.nums.push(n);
+  });
+  return Object.values(groups).sort((a,b)=> b.count-a.count || a.key.localeCompare(b.key));
+}
+
+function condense(nums){
+  if(!nums.length) return "";
+  const s=[...nums].sort((a,b)=>a-b), parts=[];
+  let start=s[0], prev=s[0];
+  for(let i=1;i<=s.length;i++){
+    const n=s[i];
+    if(n===prev+1){ prev=n; continue; }
+    parts.push(start===prev?String(start):start+"–"+prev);
+    start=n; prev=n;
+  }
+  return parts.join(", ");
+}
+
+function checklistView(localCards){
+  const live = !!sheetCache;
+  const source = live ? sheetCache.cards : localCards;
+  const sets = buildSets(source);
+
+  if(!sets.length) return `
+    ${titleBar("Sets")}
+    <div class="empty"><h2>Nothing to group yet</h2><p>Scan a few cards and they will be grouped by set here.</p></div>`;
+
+  return `
+    ${titleBar("Sets", `${sets.length} set${sets.length===1?"":"s"} · from ${live?"your Sheet":"this phone"}`,
+      store.hook()?`<button class="act" id="sheetGo">${live?"Refresh":"Use Sheet"}</button>`:"")}
+    <div class="screen">
+      <p class="hintline" style="padding:0 20px 14px">Gaps are holes between the lowest and highest number you own — not how far you are from completing a set, which cannot be known without the published checklist.</p>
+      ${sets.map(g=>{
+        const nums=[...g.nums].sort((a,b)=>a-b);
+        const lo=nums[0], hi=nums[nums.length-1];
+        const have=new Set(nums);
+        const gaps=[];
+        if(nums.length) for(let n=lo;n<=hi;n++) if(!have.has(n)) gaps.push(n);
+        const span = nums.length ? (hi-lo+1) : 0;
+        const pct = span ? Math.round(nums.length/span*100) : 0;
+        return `
+          <div class="setcard">
+            <div class="h">
+              <b>${esc(g.key)}</b>
+              <span>${g.count} card${g.count===1?"":"s"}${g.sport?" · "+esc(g.sport):""}${
+                g.value?" · $"+g.value.toFixed(2):""}</span>
+            </div>
+            ${nums.length?`<div class="bar"><div style="width:${pct}%"></div></div>`:""}
+            <div class="nums">
+              ${nums.length?`Have: ${esc(condense(nums))}`:"No card numbers recorded"}
+              ${gaps.length?`<br><em>Missing in range: ${esc(condense(gaps))}</em>`:""}
+            </div>
+          </div>`;
+      }).join("")}
+    </div>`;
+}
+
+/* ==================== settings ==================== */
+function maskKey(k){
+  if(!k) return "Not set";
+  return k.length>12 ? k.slice(0,7)+"…"+k.slice(-4) : "Set";
+}
+
+function settingsView(){
+  const connected = !!store.hook();
+  const n = store.cards().length;
+  return `
+    ${titleBar("Settings")}
+    <div class="screen">
+
+      <div class="group">
+        <div class="grouphead">Scanning</div>
+        <div class="list">
+          <button class="row" data-pm="on">
+            <span class="lbl">Front and back<span class="sub">Two photos. Card number and year from the back.</span></span>
+            ${store.pairs()?`<span style="color:var(--blue);font-size:19px">✓</span>`:""}
+          </button>
+          <button class="row" data-pm="off">
+            <span class="lbl">Front only<span class="sub">One photo. Faster, but no card number.</span></span>
+            ${!store.pairs()?`<span style="color:var(--blue);font-size:19px">✓</span>`:""}
+          </button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="grouphead">Claude</div>
+        <div class="list">
+          <button class="row" id="rekey">
+            <span class="lbl">API key</span>
+            <span class="val">${esc(maskKey(store.key()))}</span>
+            <span class="chev">${ICON.chev}</span>
+          </button>
+        </div>
+        <div class="groupnote">Stored on this phone only. Reading a card costs about a cent.</div>
+      </div>
+
+      <div class="group">
+        <div class="grouphead">Google Sheet</div>
+        <div class="list">
+          <div class="row plain">
+            <span class="lbl">Status</span>
+            <span class="val" style="color:${connected?"var(--green)":"var(--label2)"}">${connected?"Connected":"Not connected"}</span>
+          </div>
+          <button class="row" id="rehook">
+            <span class="lbl">Apps Script URL</span>
+            <span class="val">${connected?"Set":"Not set"}</span>
+            <span class="chev">${ICON.chev}</span>
+          </button>
+          <button class="row" id="redoc">
+            <span class="lbl">Spreadsheet link</span>
+            <span class="val">${store.sheetUrl()?"Set":"Not set"}</span>
+            <span class="chev">${ICON.chev}</span>
+          </button>
+          ${store.sheetUrl()?`
+            <a class="row tint" href="${esc(store.sheetUrl())}" target="_blank" rel="noopener">
+              <span class="lbl">Open spreadsheet</span>
+            </a>`:""}
+        </div>
+        ${connected?`<div class="groupnote">New cards are sent automatically unless you turn the switch off on a card.</div>`:""}
+      </div>
+
+      <div class="group">
+        <div class="grouphead">Bulk scanning from Drive</div>
+        <div class="list">
+          <button class="row" id="setInbox">
+            <span class="lbl">Upload folder<span class="sub">Drop card photos here</span></span>
+            <span class="val">${esc(store.inbox())}</span>
+            <span class="chev">${ICON.chev}</span>
+          </button>
+          <button class="row" id="setDone">
+            <span class="lbl">Finished folder<span class="sub">Photos move here once read</span></span>
+            <span class="val">${esc(store.doneFolder())}</span>
+            <span class="chev">${ICON.chev}</span>
+          </button>
+          ${driveInfo?`
+            <div class="row plain">
+              <span class="lbl">Waiting to scan</span>
+              <span class="val" style="color:${driveInfo.waiting?"var(--blue)":"var(--label2)"}">${driveInfo.waiting} photo${driveInfo.waiting===1?"":"s"}</span>
+            </div>
+            <a class="row tint" href="${esc(driveInfo.inboxUrl)}" target="_blank" rel="noopener">
+              <span class="lbl">Open upload folder in Drive</span>
+            </a>`:""}
+          <button class="row tint" id="driveCheck">
+            <span class="lbl">${driveChecking?"Checking…":driveInfo?"Check again":"Check folders"}</span>
+          </button>
+          ${driveInfo && driveInfo.waiting ? `
+            <button class="row tint" id="driveScanNow">
+              <span class="lbl">Scan those ${driveInfo.waiting} photo${driveInfo.waiting===1?"":"s"} now</span>
+            </button>`:""}
+        </div>
+        <div class="groupnote">Upload photos to the folder from any device, then tap <b>Scan Drive inbox</b> on the Read a card screen. In front-and-back mode they are read two at a time, oldest first, so shoot each card front then back.</div>
+      </div>
+
+      <div class="group">
+        <div class="grouphead">Collection</div>
+        <div class="list">
+          <div class="row plain">
+            <span class="lbl">Cards on this phone</span>
+            <span class="val">${n}</span>
+          </div>
+          <button class="row tint" id="csv"><span class="lbl">Export CSV</span></button>
+          <button class="row tint" id="copy"><span class="lbl">Copy as text</span></button>
+          ${sheetCache?`<button class="row destruct" id="purgeSafe">
+            <span class="lbl">Remove cards already on the Sheet</span></button>`:""}
+          <button class="row destruct" id="purgeAll"><span class="lbl">Clear every card</span></button>
+        </div>
+        <div class="groupnote">Clearing removes cards from this phone only. Anything on your Sheet stays there.</div>
+      </div>
+
+    </div>`;
+}
+
+/* ==================== onboarding ==================== */
+function firstRun(){
+  app.innerHTML = `
+    <div class="setup">
+      <h1>Cards</h1>
+      <p>Photograph a card, get what it is and what it last sold for. This talks to Claude straight from your phone, so it needs your own API key.</p>
+      <input class="field" type="password" id="k" placeholder="sk-ant-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="filled" id="saveKey">Continue</button>
+      <p class="fine">Get a key at console.anthropic.com. It stays on this device and is sent only to Anthropic. About a cent per card.</p>
+    </div>`;
+  $("saveKey").onclick=()=>{ const v=$("k").value.trim(); if(v){ store.setKey(v); render(); } };
+  $("k").onkeydown=(e)=>{ if(e.key==="Enter") $("saveKey").click(); };
+}
+
+/* ==================== events ==================== */
+function wire(){
+  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{
+    view=b.dataset.go; editing=null; render();
+    window.scrollTo(0,0);
+  });
+
+  // --- scan ---
+  const cam=$("cam"), lib=$("lib");
+  if($("shoot")) $("shoot").onclick=()=>cam.click();
+  if($("pick"))  $("pick").onclick =()=>lib.click();
+  if(cam) cam.onchange=(e)=>{ const f=e.target.files[0]; e.target.value=""; handleOne(f); };
+  if(lib) lib.onchange=(e)=>{ const fs=[...e.target.files]; e.target.value=""; handleMany(fs); };
+  if($("skipBack")) $("skipBack").onclick=async()=>{ const f=pending; pending=null; await identifyPair(f,null); };
+  if($("drive")) $("drive").onclick=()=>runDriveInbox();
+
+  if($("discard")) $("discard").onclick=()=>{
+    result=null; dupeOf=null; lastFull=null; lastSheetImg=null; edits={}; pending=null;
+    paidIn=""; valueIn=""; noteIn=""; render();
+  };
+
+  if(result){
+    const merged=()=>({...result,...edits});
+    if($("bigShot")) $("bigShot").onclick=()=>{
+      lightbox={src:lastFull||result.thumb, cap:[result.player,lineage(result)].filter(Boolean).join(" — ")};
+      render();
+    };
+    if($("backShot")) $("backShot").onclick=()=>{
+      lightbox={src:result.backThumb, cap:(result.player||"Card")+" — back"}; render();
+    };
+    const fix=(id,field)=>{ const el=$(id); if(el) el.oninput=(e)=>{
+      edits[field]=e.target.value.trim();
+      const a=$("sold"); if(a) a.href=soldUrl(merged());
+    }; };
+    fix("fixNum","cardNumber"); fix("fixYear","year"); fix("fixPar","parallel"); fix("fixSer","serial");
+
+    if($("paid"))  $("paid").oninput =(e)=>paidIn=e.target.value;
+    if($("value")) $("value").oninput=(e)=>valueIn=e.target.value;
+    if($("note"))  $("note").oninput =(e)=>noteIn=e.target.value;
+
+    const chk=$("sendChk");
+    if(chk) chk.onchange=(e)=>{ sendOn=e.target.checked; store.setPush(sendOn); };
+
+    if($("keep")) $("keep").onclick=async()=>{
+      if(dupeOf && !confirm(
+        `${dupeOf.player || "This card"} is already in your collection, added ${new Date(dupeOf.at).toLocaleDateString()}.\n\nAdd it a second time?`
+      )) return;
+      const pushed = sendOn && !!store.hook();
+      const saved = await commitResult();
+      view="saved"; render();
+      if(!saved) say("Out of room — export a CSV, then clear some cards");
+      else say(pushed ? "Added and sent to your Sheet" : "Added to your collection");
+    };
+  }
+
+  // --- search / sort / view switch ---
+  const find_=$("find");
+  if(find_) find_.oninput=(e)=>{
+    search=e.target.value;
+    const pos=e.target.selectionStart;
+    render();
+    const again=$("find");
+    if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch{} }
+  };
+  const sortSel=$("sortSel");
+  if(sortSel) sortSel.onchange=(e)=>{ store.setSortBy(e.target.value); render(); };
+  document.querySelectorAll("[data-view2]").forEach(b=>b.onclick=()=>{
+    store.setListView(b.dataset.view2==="list"); editing=null; render();
+  });
+
+  // --- sheet checks ---
+  ["doCheck","recheck","sheetGo"].forEach(id=>{
+    if($(id)) $(id).onclick=(e)=>{ e.preventDefault(); refreshSheet(); };
+  });
+
+  // --- settings ---
+  document.querySelectorAll("[data-pm]").forEach(b=>b.onclick=()=>{
+    store.setPairs(b.dataset.pm==="on"); pending=null; render();
+  });
+
+  if($("rekey")) $("rekey").onclick=()=>{
+    const v=prompt("Anthropic API key", store.key());
+    if(v===null) return;
+    if(!v.trim()){ localStorage.removeItem("anthropicKey"); render(); return; }
+    store.setKey(v.trim()); render(); say("Key saved");
+  };
+
+  if($("rehook")) $("rehook").onclick=()=>{
+    const u=prompt("Apps Script web app URL (blank to disconnect)", store.hook());
+    if(u===null) return;
+    const s=u.trim()?prompt("The secret you set in the script", store.secret()):"";
+    if(s===null) return;
+    store.setHook(u.trim(),(s||"").trim());
+    render(); say(u.trim()?"Sheet connected":"Sheet disconnected");
+  };
+
+  if($("redoc")) $("redoc").onclick=()=>{
+    const doc=prompt("Link to your Google Sheet (blank to remove)", store.sheetUrl());
+    if(doc===null) return;
+    store.setSheetUrl(doc.trim());
+    render(); say(doc.trim()?"Spreadsheet linked":"Spreadsheet unlinked");
+  };
+
+  if($("setInbox")) $("setInbox").onclick=()=>{
+    const v=prompt("Name of the Drive folder you upload card photos to", store.inbox());
+    if(v===null || !v.trim()) return;
+    store.setInbox(v.trim()); driveInfo=null; render(); say("Upload folder set");
+  };
+  if($("setDone")) $("setDone").onclick=()=>{
+    const v=prompt("Name of the folder scanned photos move to", store.doneFolder());
+    if(v===null || !v.trim()) return;
+    store.setDoneFolder(v.trim()); driveInfo=null; render(); say("Finished folder set");
+  };
+  if($("driveCheck")) $("driveCheck").onclick=()=>checkDriveFolders();
+  if($("driveScanNow")) $("driveScanNow").onclick=()=>{ view="scan"; render(); runDriveInbox(); };
+
+  if($("csv"))  $("csv").onclick=download;
+  if($("copy")) $("copy").onclick=async()=>{
+    if(!store.cards().length) return;
+    try{ await navigator.clipboard.writeText(csv()); say("Copied"); }
+    catch{ say("Copying is blocked in this browser"); }
+  };
+
+  if($("purgeSafe")) $("purgeSafe").onclick=()=>{
+    const fps=new Set((sheetCache&&sheetCache.cards||[]).map(fingerprint));
+    const keep=store.cards().filter(c=>!fps.has(fingerprint(c)));
+    const going=store.cards().length-keep.length;
+    if(!going){ say("Nothing confirmed on the Sheet yet"); return; }
+    if(!confirm(`Remove ${going} card${going===1?"":"s"} from this phone?\n\nThey stay on your Sheet.`)) return;
+    store.setCards(keep); render(); say(`${going} removed`);
+  };
+
+  if($("purgeAll")) $("purgeAll").onclick=()=>{
+    const n=store.cards().length;
+    if(!n) return;
+    if(!confirm(`Clear all ${n} card${n===1?"":"s"} from this phone?\n\nAnything not already on your Sheet is gone for good.`)) return;
+    store.setCards([]); sheetCache=null; render(); say("Cleared");
+  };
+
+  // --- lightbox ---
+  if($("lbClose")) $("lbClose").onclick=()=>{ lightbox=null; render(); };
+  if($("lb")) $("lb").onclick=(e)=>{ if(e.target.id==="lb"||e.target.tagName==="IMG"){ lightbox=null; render(); } };
+  document.querySelectorAll("[data-zoom]").forEach(img=>img.onclick=()=>{
+    const c=store.cards().find(x=>x.id===img.dataset.zoom);
+    if(c) lightbox={src:c.thumb, cap:[c.player,lineage(c)].filter(Boolean).join(" — ")};
+    render();
+  });
+
+  // --- per-card actions ---
+  const cards=store.cards();
+  const find=(id)=>cards.find(c=>c.id===id);
+
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editing=b.dataset.edit; render(); });
+  document.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>{ editing=null; render(); });
+  document.querySelectorAll("[data-dupe]").forEach(b=>b.onclick=()=>{
+    const c=find(b.dataset.dupe); search=c?.player||""; view="saved"; render();
+  });
+
+  document.querySelectorAll("[data-send]").forEach(b=>b.onclick=async()=>{
+    const c=find(b.dataset.send);
+    b.textContent="Sending…"; b.disabled=true;
+    if(c.pushed){
+      await updateSheet(c, c.sentFp || fingerprint(c));
+      store.setCards(store.cards().map(x=>x.id===c.id?{...x,sentFp:fingerprint(c)}:x));
+      render(); say("Its row on the Sheet was updated");
+    } else {
+      await pushToSheet(c, c.thumb);
+      store.setCards(store.cards().map(x=>x.id===c.id?{...x,pushed:true,sentFp:fingerprint(c)}:x));
+      render(); say("Sent to your Sheet");
+    }
+  });
+
+  document.querySelectorAll("[data-drop]").forEach(b=>b.onclick=()=>{
+    const c=find(b.dataset.drop);
+    const warn = c.pushed
+      ? `Remove ${c.player||"this card"} from this phone?\n\nIt stays on your Sheet.`
+      : `Remove ${c.player||"this card"}?\n\nIt was never sent to your Sheet, so this deletes it for good.`;
+    if(!confirm(warn)) return;
+    store.setCards(store.cards().filter(x=>x.id!==c.id));
+    editing=null; render(); say("Removed");
+  });
+
+  document.querySelectorAll("[data-save]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.save;
+    const before=find(id);
+    if(!before) return;
+    const fields=["player","team","year","set","subset","parallel","cardNumber","serial","paid","value","note"];
+    const next={...before};
+    fields.forEach(f=>{
+      const el=document.querySelector(`[data-f-${f}="${id}"]`);
+      if(el) next[f]=el.value.trim();
+    });
+    const willUpdate = before.pushed && !!store.hook();
+    if(willUpdate){ b.textContent="Saving…"; b.disabled=true; }
+    store.setCards(store.cards().map(c=>c.id===id?next:c));
+    if(willUpdate){
+      await updateSheet(next, before.sentFp || fingerprint(before));
+      const stamped={...next, sentFp: fingerprint(next)};
+      store.setCards(store.cards().map(c=>c.id===id?stamped:c));
+    }
+    editing=null; render();
+    say(willUpdate ? "Saved and Sheet updated" : "Saved");
+  });
+}
+
+/* manifest, generated inline so this stays a single file */
+const manifest={name:"Cards",short_name:"Cards",start_url:".",display:"standalone",
+  background_color:"#000000",theme_color:"#000000",
+  icons:[{src:document.querySelector('link[rel="apple-touch-icon"]').getAttribute("href"),
+          sizes:"any",type:"image/svg+xml",purpose:"any"}]};
+const ml=document.createElement("link");
+ml.rel="manifest";
+ml.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"}));
+document.head.appendChild(ml);
+
+render();
+</script>
+</body>
+</html>
