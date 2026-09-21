@@ -262,6 +262,50 @@
   .setup .field{margin-bottom:12px}
   .setup .fine{font-size:13px;color:var(--label3);margin-top:14px;line-height:1.4}
 
+
+  /* ---------- full-screen swipe gallery ---------- */
+  .glb{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+  .glb-img{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .glb-img img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;
+               transition:transform .22s cubic-bezier(.25,.46,.45,.94)}
+  .glb-top{position:absolute;top:0;left:0;right:0;z-index:2;
+           padding:max(14px,env(safe-area-inset-top)) 16px 0;
+           display:flex;justify-content:space-between;align-items:center;
+           background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent)}
+  .glb-close{background:none;border:none;color:#fff;font-size:17px;padding:6px 0;cursor:pointer}
+  .glb-counter{font-size:13px;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums}
+  .glb-info{padding:14px 18px calc(max(18px,env(safe-area-inset-bottom))+60px);
+            background:linear-gradient(to top,rgba(0,0,0,.85),transparent);
+            position:absolute;bottom:0;left:0;right:0}
+  .glb-name{font-size:20px;font-weight:600;color:#fff;line-height:1.2}
+  .glb-line{font-size:14px;color:rgba(255,255,255,.7);margin-top:4px;line-height:1.4}
+  .glb-acts{display:flex;gap:18px;margin-top:10px}
+  .glb-acts a,.glb-acts button{background:none;border:none;color:var(--blue);font-size:15px;
+                                cursor:pointer;padding:0}
+  .glb-acts .del{color:var(--red)}
+  .glb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);
+           border:none;color:#fff;width:40px;height:40px;border-radius:20px;font-size:20px;
+           cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .glb-prev{left:10px} .glb-next{right:10px}
+
+  /* ---------- set detail ---------- */
+  .setdetail-hero{padding:16px 16px 0}
+  .setdetail-hero h2{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  .setdetail-hero p{font-size:15px;color:var(--label2);margin-top:4px}
+  .progress-strip{margin:14px 16px 0;height:6px;background:var(--fill);border-radius:3px;overflow:hidden}
+  .progress-strip div{height:100%;background:var(--blue);border-radius:3px}
+  .progress-label{font-size:13px;color:var(--label2);padding:6px 16px 14px;
+                  display:flex;justify-content:space-between}
+  .cl-section{padding:0 16px;margin-bottom:22px}
+  .cl-head{font-size:13px;color:var(--label2);text-transform:uppercase;letter-spacing:.06em;
+           padding:0 0 8px;font-weight:400}
+  .cl-grid{display:flex;flex-wrap:wrap;gap:6px}
+  .cl-chip{padding:5px 10px;border-radius:7px;font-size:13px;font-variant-numeric:tabular-nums}
+  .cl-chip.have{background:rgba(10,132,255,.15);color:var(--blue)}
+  .cl-chip.miss{background:rgba(255,69,58,.12);color:var(--red)}
+  .cl-chip.unkn{background:var(--group2);color:var(--label2)}
+  .setcard{cursor:pointer}
+  .setcard:active{opacity:.75}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -299,6 +343,10 @@ const store = {
 };
 
 let view="scan", result=null, failure="", editing=null, toast=null;
+let setDetail=null;       // key of the set currently being drilled into
+let sheetEditing=null;    // row number being edited on the Sheet tab
+let galleryIdx=0;         // current index when swiping full-screen gallery
+let galleryList=[];       // cards in the current gallery session
 let paidIn="", valueIn="", noteIn="", sendOn=true, dupeOf=null;
 let lightbox=null, lastFull=null, lastSheetImg=null;
 let pending=null;          // front captured, waiting on the back
@@ -576,17 +624,15 @@ async function refreshSheet(){
   sheetLoading=false; render();
 }
 
-async function updateSheet(card, matchFp){
+async function updateSheet(card, matchFp, directRow){
   const url=store.hook();
   if(!url) return {skipped:true};
-  // The thumbnail always goes along. The script decides what to do with it:
-  // it fills an empty or previously failed Photo cell, but leaves a good
-  // photo alone so a text edit cannot downgrade it.
   const payload = {...card, fallbackImage: card.thumb};
   try{
     await fetch(url,{method:"POST",mode:"no-cors",
       headers:{"content-type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({secret:store.secret(),action:"update",match:matchFp,card:payload})});
+      body:JSON.stringify({secret:store.secret(),action:"update",
+                           match:matchFp, directRow:directRow||null, card:payload})});
     return {ok:true};
   }catch{ return {ok:false}; }
 }
@@ -731,6 +777,66 @@ async function checkDriveFolders(){
   driveChecking=false; render();
 }
 
+
+/* ==================== gallery lightbox ==================== */
+
+function openGallery(list, idx){
+  galleryList = list;
+  galleryIdx  = Math.max(0, Math.min(idx, list.length-1));
+  render();
+  // After render, hook up touch swiping
+  setTimeout(hookGallerySwipe, 0);
+}
+
+function hookGallerySwipe(){
+  const wrap = document.getElementById("glb");
+  if(!wrap) return;
+  let sx=0, sy=0;
+  wrap.addEventListener("touchstart", e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+  wrap.addEventListener("touchend", e=>{
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>Math.abs(dy)+10 && Math.abs(dx)>40){
+      if(dx<0) galleryStep(1); else galleryStep(-1);
+    }
+  },{passive:true});
+}
+
+function galleryStep(dir){
+  galleryIdx = (galleryIdx + dir + galleryList.length) % galleryList.length;
+  render();
+  setTimeout(hookGallerySwipe, 0);
+}
+
+function galleryOverlay(){
+  if(!galleryList.length) return "";
+  const c = galleryList[galleryIdx];
+  const src = c.thumb || "";
+  const del = !c.row; // sheet rows have .row; local cards have .id
+  return `
+    <div class="glb" id="glb">
+      <div class="glb-img">
+        <div class="glb-top">
+          <button class="glb-close" id="glbClose">Done</button>
+          <span class="glb-counter">${galleryIdx+1} / ${galleryList.length}</span>
+          <span></span>
+        </div>
+        ${src ? `<img src="${src}" alt="" draggable="false">` :
+          `<div style="color:rgba(255,255,255,.3);font-size:15px">No photo</div>`}
+        ${galleryIdx>0?`<button class="glb-nav glb-prev" id="glbPrev">‹</button>`:""}
+        ${galleryIdx<galleryList.length-1?`<button class="glb-nav glb-next" id="glbNext">›</button>`:""}
+        <div class="glb-info">
+          <div class="glb-name">${esc(c.player||"Unnamed")}</div>
+          <div class="glb-line">${esc([lineage(c),c.team,c.parallel,c.serial,c.cardNumber?"#"+c.cardNumber:""].filter(Boolean).join(" · "))}</div>
+          <div class="glb-acts">
+            <a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold prices</a>
+            ${c.value?`<span style="color:rgba(255,255,255,.7)">${esc(money(c.value))}</span>`:""}
+            ${del?`<button class="del" data-gdrop="${c.id}">Remove</button>`:""}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
 /* ==================== sorting and filtering ==================== */
 const SORTS = {
   recent:      { label:"Newest first",  fn:(a,b)=> (b.at||b.row||0)-(a.at||a.row||0) },
@@ -804,7 +910,7 @@ function render(){
         `<button data-go="${k}" aria-current="${view===k}">${icon}<span>${label}</span></button>`).join("")}
     </nav>
     ${toast ? `<div class="toast" role="status">${esc(toast)}</div>` : ""}
-    ${lightbox ? `
+    ${galleryList.length ? galleryOverlay() : lightbox ? `
       <div class="lightbox" id="lb">
         <button class="close" id="lbClose">Done</button>
         <img src="${lightbox.src}" alt="">
@@ -1104,29 +1210,86 @@ function sheetView(){
   let rows = q ? sheetCache.cards.filter(c=>matches(c,q)) : sheetCache.cards;
   rows = sortCards(rows, store.sortBy());
 
+  const seg = `<div class="seg" style="flex:none">
+    <button data-view2="list"    aria-pressed="${store.listView()}">List</button>
+    <button data-view2="gallery" aria-pressed="${!store.listView()}">Cards</button>
+  </div>`;
+
   return `
     ${titleBar("On the Sheet", `${sheetCache.cards.length} rows · checked ${new Date(sheetCache.at).toLocaleTimeString()}`,
       `<button class="act" id="sheetGo">Refresh</button>`)}
     <div class="screen">
-      <div class="searchwrap"><input class="search" id="find" placeholder="Search" value="${esc(search)}"></div>
+      <div class="searchwrap">
+        <input class="search" id="find" placeholder="Search" value="${esc(search)}">
+      </div>
       <div class="pickers">
         <select id="sortSel">${Object.entries(SORTS).map(([k,v])=>
-          `<option value="${k}" ${k===store.sortBy()?"selected":""}>${v.label}</option>`).join("")}</select>
+          `<option value="${k}" ${k===store.sortBy()?"selected":""}>${v.label}</option>`).join("")}
+        </select>
+        ${seg}
       </div>
-      ${!rows.length ? `<div class="empty"><h2>${q?"No matches":"Nothing on the Sheet yet"}</h2></div>`
-        : rows.map(c=>`
+      ${!rows.length ? `<div class="empty"><h2>${q?"No matches":"Nothing on the Sheet yet"}</h2></div>` :
+        store.listView() ? rows.map(c=>`
           <div class="cardrow">
+            ${c.thumb?`<img data-sgal="${c.row}" src="${c.thumb}" alt="">`:
+              `<div style="width:44px;height:61px;background:var(--group2);border-radius:5px;flex-shrink:0"></div>`}
             <div class="body">
               <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
                 <span class="name">${esc(c.player||"Unnamed row")}</span>
                 ${c.value?`<span class="price">${esc(money(c.value))}</span>`:""}
               </div>
-              <div class="sub">${esc([lineage(c),c.parallel,c.serial].filter(Boolean).join(" · "))}${
-                c.cardId?` · #${esc(c.cardId)}`:""} · row ${c.row}</div>
+              <div class="sub">${esc([lineage(c),c.team,c.parallel,c.serial,c.cardNumber?"#"+c.cardNumber:""].filter(Boolean).join(" · "))}${
+                c.cardId?` · #${esc(c.cardId)}`:""}</div>
               ${c.status?`<div class="sub">${esc(c.status)}${c.location?" · "+esc(c.location):""}</div>`:""}
-              <div class="acts"><a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a></div>
+              ${sheetEditing===c.row ? `
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+                  <div class="fieldrow">
+                    <input class="field" data-sf-player="${c.row}" placeholder="Player" value="${esc(c.player||"")}">
+                    <input class="field" data-sf-team="${c.row}" placeholder="Team" value="${esc(c.team||"")}">
+                  </div>
+                  <div class="fieldrow">
+                    <input class="field" data-sf-year="${c.row}" placeholder="Year" value="${esc(c.year||"")}">
+                    <input class="field" data-sf-cardNumber="${c.row}" placeholder="Card no." value="${esc(c.cardNumber||"")}">
+                  </div>
+                  <input class="field" data-sf-set="${c.row}" placeholder="Set" value="${esc(c.set||"")}">
+                  <div class="fieldrow">
+                    <input class="field" data-sf-parallel="${c.row}" placeholder="Parallel" value="${esc(c.parallel||"")}">
+                    <input class="field" data-sf-serial="${c.row}" placeholder="Serial" value="${esc(c.serial||"")}">
+                  </div>
+                  <div class="fieldrow">
+                    <input class="field" data-sf-paid="${c.row}" inputmode="decimal" placeholder="Paid" value="${esc(c.paid||"")}">
+                    <input class="field" data-sf-value="${c.row}" inputmode="decimal" placeholder="Worth" value="${esc(c.value||"")}">
+                  </div>
+                  <textarea class="field" data-sf-note="${c.row}" rows="2" placeholder="Notes">${esc(c.note||"")}</textarea>
+                  <button class="filled" data-sf-save="${c.row}">Save to Sheet</button>
+                  <button class="gray" data-sf-cancel="${c.row}">Cancel</button>
+                </div>` : `
+              <div class="acts">
+                <a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a>
+                <button data-sf-edit="${c.row}">Edit</button>
+              </div>`}
             </div>
-          </div>`).join("")}
+          </div>`).join("") :
+        `<div class="gallery">
+          ${rows.map((c,i)=>`
+            <div class="slide" data-sgal="${c.row}">
+              ${c.thumb?`<img class="pic" data-sgal="${c.row}" src="${c.thumb}" alt="${esc(c.player||"")}">`:
+                `<div class="pic" style="display:flex;align-items:center;justify-content:center;background:var(--group2);color:var(--label3);font-size:14px">No photo</div>`}
+              <div class="meta">
+                <div class="top">
+                  <h2>${esc(c.player||"Unnamed")}</h2>
+                  ${c.value?`<span class="price">${esc(money(c.value))}</span>`:""}
+                </div>
+                <div class="line">${esc([lineage(c),c.team,c.parallel,c.serial].filter(Boolean).join(" · "))}</div>
+                <div class="acts">
+                  <a href="${soldUrl(c)}" target="_blank" rel="noopener">Sold</a>
+                  <button data-sf-edit="${c.row}">Edit</button>
+                </div>
+              </div>
+            </div>`).join("")}
+        </div>
+        <div class="pagedots">Swipe · ${rows.length} row${rows.length===1?"":"s"}</div>`}
+      <div id="galSheet" data-rows="${esc(JSON.stringify(rows.map(c=>c.row)))}"></div>
     </div>`;
 }
 
@@ -1163,6 +1326,13 @@ function checklistView(localCards){
   const source = live ? sheetCache.cards : localCards;
   const sets = buildSets(source);
 
+  // ---- drill-in to a single set ----
+  if(setDetail){
+    const g = sets.find(s=>s.key===setDetail);
+    if(g) return setDetailView(g, source);
+    setDetail=null;
+  }
+
   if(!sets.length) return `
     ${titleBar("Sets")}
     <div class="empty"><h2>Nothing to group yet</h2><p>Scan a few cards and they will be grouped by set here.</p></div>`;
@@ -1171,7 +1341,7 @@ function checklistView(localCards){
     ${titleBar("Sets", `${sets.length} set${sets.length===1?"":"s"} · from ${live?"your Sheet":"this phone"}`,
       store.hook()?`<button class="act" id="sheetGo">${live?"Refresh":"Use Sheet"}</button>`:"")}
     <div class="screen">
-      <p class="hintline" style="padding:0 20px 14px">Gaps are holes between the lowest and highest number you own — not how far you are from completing a set, which cannot be known without the published checklist.</p>
+      <p class="hintline" style="padding:0 20px 14px">Tap a set to see its cards and any checklist information.</p>
       ${sets.map(g=>{
         const nums=[...g.nums].sort((a,b)=>a-b);
         const lo=nums[0], hi=nums[nums.length-1];
@@ -1181,7 +1351,7 @@ function checklistView(localCards){
         const span = nums.length ? (hi-lo+1) : 0;
         const pct = span ? Math.round(nums.length/span*100) : 0;
         return `
-          <div class="setcard">
+          <div class="setcard" data-set="${esc(g.key)}">
             <div class="h">
               <b>${esc(g.key)}</b>
               <span>${g.count} card${g.count===1?"":"s"}${g.sport?" · "+esc(g.sport):""}${
@@ -1190,10 +1360,96 @@ function checklistView(localCards){
             ${nums.length?`<div class="bar"><div style="width:${pct}%"></div></div>`:""}
             <div class="nums">
               ${nums.length?`Have: ${esc(condense(nums))}`:"No card numbers recorded"}
-              ${gaps.length?`<br><em>Missing in range: ${esc(condense(gaps))}</em>`:""}
+              ${gaps.length?`<span style="color:var(--red)"> · ${gaps.length} gap${gaps.length===1?"":"s"} in range</span>`:""}
             </div>
           </div>`;
       }).join("")}
+    </div>`;
+}
+
+function setDetailView(g, allCards){
+  const setCards = allCards.filter(c=>{
+    const k=[c.year,c.set,c.subset].filter(Boolean).join(" · ")||"Unknown set";
+    return k===g.key;
+  });
+
+  const nums = [...g.nums].sort((a,b)=>a-b);
+  const have = new Set(nums);
+  const lo=nums[0], hi=nums[nums.length-1];
+  const gaps=[];
+  if(nums.length) for(let n=lo;n<=hi;n++) if(!have.has(n)) gaps.push(n);
+  const span = nums.length ? (hi-lo+1) : 0;
+  const pct  = span ? Math.round(nums.length/span*100) : 0;
+
+  const photos = setCards.filter(c=>c.thumb);
+
+  return `
+    <div class="navbar">
+      <div class="inline">
+        <button class="act" id="backToSets">← Sets</button>
+        <span></span>
+      </div>
+    </div>
+    <div class="screen">
+      <div class="setdetail-hero">
+        <h2>${esc(g.key)}</h2>
+        <p>${g.count} card${g.count===1?"":"s"}${g.sport?" · "+esc(g.sport):""}${
+          g.value?" · $"+g.value.toFixed(2):""}</p>
+      </div>
+
+      ${nums.length ? `
+        <div class="progress-strip"><div style="width:${pct}%"></div></div>
+        <div class="progress-label">
+          <span>${nums.length} of ${span} you own <span style="color:var(--label3)">(by range)</span></span>
+          <span>${pct}%</span>
+        </div>` : ""}
+
+      ${photos.length ? `
+        <div class="cl-section">
+          <div class="cl-head">Your cards</div>
+          <div class="gallery" style="padding:0 0 8px">
+            ${setCards.map((c,i)=>`
+              <div class="slide" style="flex:0 0 200px">
+                ${c.thumb?`<img class="pic" style="aspect-ratio:3/4" data-setgal="${i}" src="${c.thumb}" alt="">`:
+                  `<div class="pic" style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:var(--group2);color:var(--label3);font-size:13px">No photo</div>`}
+                <div class="meta" style="padding:9px 11px 11px">
+                  <div style="font-size:15px;font-weight:600;line-height:1.2">${esc(c.player||"—")}</div>
+                  <div style="font-size:12px;color:var(--label2);margin-top:3px">${
+                    [c.parallel,c.serial,c.cardNumber?"#"+c.cardNumber:""].filter(Boolean).join(" · ")||"—"}</div>
+                  ${c.value?`<div style="font-size:14px;font-weight:600;margin-top:5px">${esc(money(c.value))}</div>`:""}
+                </div>
+              </div>`).join("")}
+          </div>
+          <div id="setgalCards" data-ids="${esc(JSON.stringify(setCards.map(c=>c.id||c.row)))}"></div>
+        </div>` : `
+        <div class="cl-section">
+          <div class="cl-head">Your cards</div>
+          <p class="hintline">${g.count} card${g.count===1?"":"s"}, no photos yet.</p>
+        </div>`}
+
+      ${nums.length ? `
+        <div class="cl-section">
+          <div class="cl-head">Numbers you own</div>
+          <div class="cl-grid">
+            ${nums.map(n=>`<span class="cl-chip have">${n}</span>`).join("")}
+          </div>
+        </div>
+
+        ${gaps.length ? `
+          <div class="cl-section">
+            <div class="cl-head">Missing in range (${gaps.length})</div>
+            <div class="cl-grid">
+              ${gaps.map(n=>`<span class="cl-chip miss">${n}</span>`).join("")}
+            </div>
+            <p class="hintline" style="margin-top:8px">These are gaps between your lowest (#${lo}) and highest (#${hi}). They could be cards in this set you do not own, or simply non-sequential numbering — a checklist import will clarify which.</p>
+          </div>` : `
+          <div class="cl-section" style="padding-top:4px">
+            <p class="hintline" style="color:var(--green)">No gaps between #${lo} and #${hi}.</p>
+          </div>`}` : `
+        <div class="cl-section">
+          <div class="cl-head">Card numbers</div>
+          <p class="hintline">No card numbers on file for this set. Shoot the backs to capture them.</p>
+        </div>`}
     </div>`;
 }
 
@@ -1466,12 +1722,61 @@ function wire(){
   };
 
   // --- lightbox ---
+  // --- lightbox (old single-image) ---
   if($("lbClose")) $("lbClose").onclick=()=>{ lightbox=null; render(); };
   if($("lb")) $("lb").onclick=(e)=>{ if(e.target.id==="lb"||e.target.tagName==="IMG"){ lightbox=null; render(); } };
+
+  // --- gallery ---
+  if($("glbClose")) $("glbClose").onclick=()=>{ galleryList=[]; render(); };
+  if($("glbPrev"))  $("glbPrev").onclick =()=>galleryStep(-1);
+  if($("glbNext"))  $("glbNext").onclick =()=>galleryStep(1);
+  document.querySelectorAll("[data-gdrop]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.gdrop;
+    if(!confirm("Remove this card?")) return;
+    store.setCards(store.cards().filter(c=>c.id!==id));
+    galleryList=galleryList.filter(c=>c.id!==id);
+    galleryIdx=Math.min(galleryIdx,galleryList.length-1);
+    if(!galleryList.length) galleryList=[];
+    render(); setTimeout(hookGallerySwipe,0);
+  });
+
+  // open gallery from Collection thumbnails
   document.querySelectorAll("[data-zoom]").forEach(img=>img.onclick=()=>{
-    const c=store.cards().find(x=>x.id===img.dataset.zoom);
-    if(c) lightbox={src:c.thumb, cap:[c.player,lineage(c)].filter(Boolean).join(" — ")};
-    render();
+    const cards=store.cards();
+    const idx=cards.findIndex(c=>c.id===img.dataset.zoom);
+    if(idx<0) return;
+    openGallery(cards, idx);
+  });
+
+  // open gallery from galCards anchor
+  const galCardsEl=$("galCards");
+  if(galCardsEl){
+    const ids=JSON.parse(galCardsEl.dataset.cards||"[]");
+    const cards=store.cards();
+    document.querySelectorAll("[data-sgal]").forEach(el=>el.onclick=()=>{
+      const rows=sheetCache?sheetCache.cards:[];
+      const idx=rows.findIndex(r=>String(r.row)===String(el.dataset.sgal));
+      if(idx>=0) openGallery(rows, idx);
+    });
+  }
+  // gallery from Sheet tab
+  const galSheetEl=$("galSheet");
+  if(galSheetEl && sheetCache){
+    document.querySelectorAll("[data-sgal]").forEach(el=>el.onclick=()=>{
+      const rows=sheetCache.cards;
+      const idx=rows.findIndex(r=>String(r.row)===String(el.dataset.sgal));
+      if(idx>=0) openGallery(rows, idx);
+    });
+  }
+  // gallery from set detail
+  document.querySelectorAll("[data-setgal]").forEach(el=>el.onclick=()=>{
+    const el2=$("setgalCards");
+    if(!el2) return;
+    const ids=JSON.parse(el2.dataset.ids||"[]");
+    const idx=parseInt(el.dataset.setgal,10);
+    const all=store.cards();
+    const sub=ids.map(id=>all.find(c=>c.id===id||c.row===id)).filter(Boolean);
+    openGallery(sub, idx);
   });
 
   // --- per-card actions ---
@@ -1507,6 +1812,36 @@ function wire(){
     store.setCards(store.cards().filter(x=>x.id!==c.id));
     editing=null; render(); say("Removed");
   });
+
+  // --- sheet tab inline editing ---
+  document.querySelectorAll("[data-sf-edit]").forEach(b=>b.onclick=()=>{
+    sheetEditing=Number(b.dataset.sfEdit); render();
+  });
+  document.querySelectorAll("[data-sf-cancel]").forEach(b=>b.onclick=()=>{
+    sheetEditing=null; render();
+  });
+  document.querySelectorAll("[data-sf-save]").forEach(b=>b.onclick=async()=>{
+    const row=Number(b.dataset.sfSave);
+    const orig=(sheetCache&&sheetCache.cards||[]).find(c=>c.row===row);
+    if(!orig) return;
+    const flds=["player","team","year","set","subset","parallel","serial","cardNumber","paid","value","note"];
+    const next={...orig};
+    flds.forEach(f=>{
+      const el=document.querySelector(`[data-sf-${f}="${row}"]`);
+      if(el) next[f]=el.value.trim();
+    });
+    b.textContent="Saving…"; b.disabled=true;
+    await updateSheet(next, null, row); // pass row directly
+    // update cache
+    if(sheetCache) sheetCache.cards=sheetCache.cards.map(c=>c.row===row?next:c);
+    sheetEditing=null; render(); say("Row "+row+" updated on your Sheet");
+  });
+
+  // --- sets navigation ---
+  document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>{
+    setDetail=b.dataset.set; render();
+  });
+  if($("backToSets")) $("backToSets").onclick=()=>{ setDetail=null; render(); };
 
   document.querySelectorAll("[data-save]").forEach(b=>b.onclick=async()=>{
     const id=b.dataset.save;
